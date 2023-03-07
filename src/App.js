@@ -1,25 +1,109 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useCallback, useEffect } from 'react'
+import Header from './components/navs/Header'
+import MainContainer from './components/home/MainContainer'
+import {
+  Route,
+  Routes,
+  useLocation
+} from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
+import { useStateValue } from './components/context/StateProvider'
+import { getAllProductsItems, getAllUsuarios } from './components/utils/firebaseFunctions'
+import { actionType } from './components/context/reducer'
+import Headerleft from './components/navs/Headerleft'
+import CartContainer from './components/cart/CartContainer'
+import SetAddres from './components/cart/setAddres'
+import Pre from './components/utils/Pre'
+import ScrollToTop from './components/utils/scrolltotop'
+import ShowLogin from './components/home/login'
+import Rewards from './components/home/Rewards'
+import Stake from './components/home/Stake'
 
-function App() {
+function App () {
+  const [{ dondeestoy, cartShow, editShow, loginShow, user }, dispatch] = useStateValue()
+  const [load, upadateLoad] = React.useState(true)
+
+  const fetchData = useCallback(() => {
+    getAllProductsItems().then((data) => {
+      dispatch({
+        type: actionType.SET_PRODUCTS,
+        products: data
+      })
+    })
+    /*  getAllOrders().then((data) => {
+       dispatch({
+           type: actionType.SET_ORDERS,
+           orders: data
+       })
+
+   }) */
+  }, [])
+
+  const fetchUsers = useCallback(() => {
+    getAllUsuarios().then((data) => {
+      dispatch({
+        type: actionType.SET_USERS,
+        users: data
+      })
+      if (user && user != null) {
+        dispatch({
+          type: actionType.SET_FAVORITE,
+          favorite: data.filter(a => a.user === user.email)
+        })
+      } else {
+        dispatch({
+          type: actionType.SET_FAVORITE,
+          favorite: ''
+        })
+      }
+    })
+  }, [])
+
+  const location = useLocation()
+
+  useEffect(() => {
+    setTimeout(() => {
+      upadateLoad(false)
+    }, 1000)
+
+    fetchData()
+    fetchUsers()
+  }, [fetchUsers])
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className='w-screen h-[90vh] bg-tesmo'>
+      <main className=" ">
+        {
+          loginShow && (<ShowLogin />)
+        }
+        {
+          editShow && (<SetAddres />)
+        }
+        <AnimatePresence>
+          {cartShow && (
+            <CartContainer />
+          )}
+        </AnimatePresence>
+        <Header />
+        {
+          dondeestoy === 'Dashboard' && (<Headerleft />)
+        }
+
+        <AnimatePresence>
+          <Pre load={load} />
+        </AnimatePresence>
+
+        <ScrollToTop />
+        <Routes location={location} key={location.pathname}>
+          <Route path='/*' element={<MainContainer />} />
+          <Route path='/Rewards' element={<Rewards/>} />
+          <Route path='/Stake' element={<Stake />} />
+         
+        </Routes>
+
+      </main>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
